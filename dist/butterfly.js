@@ -397,7 +397,7 @@ var loadDepends = function(module, callback) {
 
 	var step = function(index) {
 		var id = depends[index],
-			aid = event.trigger('alias', module.namespace, id) || id;
+			aid = event.trigger('alias', module.namespace, id);
 
 		if (aid) {
 			log.debug('alias', id, '->', aid);
