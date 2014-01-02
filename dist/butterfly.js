@@ -638,15 +638,19 @@ var proto = loader.prototype;
 
 
 proto.config = function(name, value) {
+	var cache = this._config;
+	if (typeof name === 'string' && value === undefined) {
+		return cache[name] || [];
+	}
+
 	var config = {};
 	if (typeof name === 'string') {
 		config[name] = value;
 	} else {
 		util.extend(config, name);
 	}
-	
-	var cache = this._config;
-	util.each(config, function(name, value) {
+
+	util.each(config, function() {
 		cache[name] = cache[name] || [];
 		cache[name].push(value);
 	});
