@@ -21,14 +21,19 @@ var proto = loader.prototype;
 
 
 proto.config = function(name, value) {
-	var config = {};
+	var config = {},
+		cache = this._config;
+
 	if (typeof name === 'string') {
-		config[name] = value;
+		if (value !== undefined) {
+			config[name] = value;
+		} else {
+			return cache[name];
+		}
 	} else {
 		util.extend(config, name);
 	}
 	
-	var cache = this._config;
 	util.each(config, function(name, value) {
 		cache[name] = cache[name] || [];
 		cache[name].push(value);
