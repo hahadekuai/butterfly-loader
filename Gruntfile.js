@@ -12,7 +12,7 @@ grunt.initConfig({
 
 	jshint: {
 		dist: {
-			src: ['build/butterfly.js'],
+			src: ['dist/butterfly.js'],
 			options: {
 				jshintrc: 'src/.jshintrc'
 			}
@@ -41,7 +41,7 @@ grunt.initConfig({
 
 	concat: {
 		build: {
-			dest: 'build/butterfly.js',
+			dest: 'dist/butterfly.js',
 			src: [
 			  'src/butterfly.js',
 			  'src/util.js',
@@ -63,23 +63,12 @@ grunt.initConfig({
 			src: 'dist/butterfly.js',
 			dest: 'dist/butterfly.min.js'
 		}
-	},
-
-
-	transport: {
-		all: {
-			files: [{
-				cwd: 'build',
-				src: '*.js',
-				dest: 'dist'
-			}]
-		}
 	}
 });
 
 
 grunt.registerTask('replace', function () {
-	var data = grunt.file.read('build/butterfly.js');
+	var data = grunt.file.read('dist/butterfly.js');
 
 	data = data.replace(/@VERSION/g, pkg.version)
 		.replace("@DATE", function () {
@@ -87,7 +76,7 @@ grunt.registerTask('replace', function () {
 			return ( new Date() ).toISOString().replace(/T.*/, "");
 		});
 
-	grunt.file.write('build/butterfly.js', data);
+	grunt.file.write('dist/butterfly.js', data);
 });
 
 
@@ -100,7 +89,7 @@ grunt.loadNpmTasks('grunt-contrib-concat');
 
 
 // Default grunt
-grunt.registerTask('build', ['concat', 'replace', 'transport', 'uglify', 'compare_size']);
+grunt.registerTask('build', ['concat', 'replace', 'uglify', 'compare_size']);
 grunt.registerTask('default', ['build']);
 
 

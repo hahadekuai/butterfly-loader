@@ -710,7 +710,7 @@ proto.off = function(name, fn) {
 var handleAlias = function(self) {
 	self.on('alias', function(namespace, id) {
 		return filter(self._config['alias'], function(index, alias) {
-			return alias[id];
+			return typeof alias === 'function' ? alias(id) : alias[id];
 		});
 	});
 };
@@ -792,7 +792,8 @@ event.on('request', function(o, callback) {
 	request(url, function() {
 		var cache = modules[o.namespace] || {};
 		// define a proxy module for just url request
-		if (!cache[o.id] && rAbs.test(url)) {
+		if (!cache[o.id] && rAbs.test(o.id)) {
+			log.debug('define proxy module for:', o.id);
 			define(o.namespace, o.id);
 		}
 
