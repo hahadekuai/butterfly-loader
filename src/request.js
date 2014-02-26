@@ -4,8 +4,6 @@ define('request', ['global', 'log', 'event'], function(global, log, event) {
 var doc = document,
 	head = doc.head || doc.getElementsByTagName('head')[0] || doc.documentElement,
 	baseElement = doc.getElementsByTagName('base')[0],
-	isOldWebKit = (global.navigator && 
-			global.navigator.userAgent.replace(/.*AppleWebKit\/(\d+)\..*/, "$1")) * 1 < 536,
 	rReadyStates = /loaded|complete|undefined/;
 
 
@@ -54,6 +52,12 @@ var onLoadScript = function(url, node, fn) {
 };
 
 
+//TODO 在webview中, css不能正常判断结束?
+var isOldWebKit = (global.navigator && 
+			global.navigator.userAgent.replace(/.*AppleWebKit\/(\d+)\..*/, "$1")) * 1 < 536;
+
+isOldWebKit = false;
+
 request.css = function(url, fn, options) {
 	log.debug('request css:', url);
 	options = options || {};
@@ -76,6 +80,9 @@ request.css = function(url, fn, options) {
 		};
 		img.src = url;
 	} else {
+		log.debug('request css success:', url);
+		fn();
+		/*
 		node.onload = node.onreadystatechange = function() {
 			if (rReadyStates.test(node.readyState)) {
 				node.onload = node.onreadystatechange = node.onerror = null;
@@ -88,6 +95,7 @@ request.css = function(url, fn, options) {
 			node.onload = node.onreadystatechange = node.onerror = null;
 			log.error('request css error: ' + url);
 		};
+		*/
 	}
 
 	append(node);	
