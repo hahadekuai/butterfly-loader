@@ -1,4 +1,4 @@
-define('request', ['global', 'log', 'event'], function(global, log, event) {
+define('request', ['global', 'log', 'event'], function(global, log, loaderEvent) {
 
 
 var doc = document,
@@ -15,13 +15,13 @@ var request = function() {
 };
 
 
-request.script = function(url, fn, options) {
+request.script = function(url, options) {
 	log.debug('request script:', url);
 	options = options || {};
 
 	var node = doc.createElement('script');
 
-	onLoadScript(url, node, fn);
+	onLoadScript(node, url, options);
 
 	node.async = 'async';
 	node.src = url;
@@ -34,20 +34,21 @@ request.script = function(url, fn, options) {
 //~ script
 
 
-var onLoadScript = function(url, node, fn) {
+var onLoadScript = function(node, url, options) {
 	node.onload = node.onreadystatechange = function(event) {
 		event = event || global.event || {};
 		if (event.type === 'load' || rReadyStates.test('' + node.readyState)) {
 			node.onload = node.onreadystatechange = node.onerror = null;
 			log.isEnabled('debug') || head.removeChild(node);
 			log.debug('request script success:', url);
-			fn();
+			options.success && options.success();
 		}
 	};
 
 	node.onerror = function() {
 		node.onload = node.onreadystatechange = node.onerror = null;
 		log.error('request js error:', url);
+		options.error && options.error();
 	};
 };
 
@@ -56,7 +57,7 @@ var isOldWebKit = (global.navigator &&
 			global.navigator.userAgent.replace(/.*AppleWebKit\/(\d+)\..*/, "$1")) * 1 < 536;
 
 
-request.css = function(url, fn, options) {
+request.css = function(url, options) {
 	log.debug('request css:', url);
 	options = options || {};
 
@@ -68,26 +69,31 @@ request.css = function(url, fn, options) {
 		node.charset = options.charset;
 	}
 
-	var callback = function() {
+	var success = function() {
 		log.debug('request css success:' + url)	;
-		fn();
+		options.success && options.success();
+	};
+
+	var error = function() {
+		log.error('request css error:' + url);
+		options.error && options.error();
 	};
 
 	if (isOldWebKit) {
 		log.debug('request css use pool');
 		setTimeout(function() {
-			poll(node, callback);
+			poll(node, success, error);
 		}, 1);
 	} else {
 		node.onload = node.onreadystatechange = function() {
 			if (rReadyStates.test(node.readyState)) {
 				node.onload = node.onreadystatechange = node.onerror = null;
-				callback();
+				success();
 			}
 		};
 		node.onerror = function() {
 			node.onload = node.onreadystatechange = node.onerror = null;
-			log.error('request css error: ' + url);
+			error();
 		};
 	}
 
@@ -97,7 +103,16 @@ request.css = function(url, fn, options) {
 
 
 var rLoadXdSheetError = /security|denied/i;
-var poll = function(node, callback) {
+var poll = function(node, success, error) {
+	var flag = false;
+
+	setTimeout(function() {
+		if (!flag) {
+			flag = true;	
+			error();
+		}
+	}, 10000);
+
 	var fn = function() {
 		var isLoaded = false;	
 		try {
@@ -105,7 +120,15 @@ var poll = function(node, callback) {
 		} catch (e) {
 			isLoaded = rLoadXdSheetError.test(e.message);
 		}
-		isLoaded ? callback() : setTimeout(fn, 20);
+	
+		if (!flag) {
+			if (isLoaded) {
+				flag = true;
+				success();
+			} else {
+				setTimeout(fn, 20);
+			}
+		}
 	};
 
 	fn();

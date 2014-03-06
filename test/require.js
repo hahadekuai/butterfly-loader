@@ -51,7 +51,7 @@ describe('require', function() {
 		require('test2', ['a/b/c'], function(o) {});
 
 		expect(resolve).toHaveBeenCalledWith('test2', 'a/b/c');
-		expect(request).toHaveBeenCalledWith(
+		expect(request).toHaveBeenCalledWith('test2',
 				{ namespace: 'test2', id: 'a/b/c', url: url }, 
 				jasmine.any(Function));
 

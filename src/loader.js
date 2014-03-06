@@ -6,10 +6,9 @@ function(util, log, event, define, require,
 		modules, request) { 
 
 
-var loader = function(namespace, config) {
+var loader = function(namespace) {
 	this.namespace = namespace;	
 	this._config = {};
-	config && this.config(config);
 
 	handleAlias(this);
 	handleResolve(this);
@@ -22,21 +21,8 @@ var proto = loader.prototype;
 
 proto.config = function(name, value) {
 	var cache = this._config;
-	if (typeof name === 'string' && value === undefined) {
-		return cache[name] || [];
-	}
-
-	var config = {};
-	if (typeof name === 'string') {
-		config[name] = value;
-	} else {
-		util.extend(config, name);
-	}
-
-	util.each(config, function() {
-		cache[name] = cache[name] || [];
-		cache[name].push(value);
-	});
+	cache[name] = cache[name] || [];
+	cache[name].push(value);
 };
 
 
@@ -70,28 +56,35 @@ proto.getModules = function() {
 };
 
 
-var eventList = {};
+var eventList = {},
+	slice = [].slice;
 proto.on = function(name, fn) {
-	var ns = this.namespace;
+	var self = this;
 
-	var handler = function(o) {
-		if (o && (typeof o === 'string' ? o === ns : o.namespace === ns)) {
-			return fn.apply(self, arguments);
+	var handler = function(namespace) {
+		if (self.namespace === namespace) {
+			return fn.apply(self, slice.call(arguments, 1));
 		}
 	};
-	eventList[fn] = handler;
+
+	fn.guid = util.guid();
+	eventList[fn.guid] = handler;
 	event.on(name, handler);
 };
 
 
 proto.off = function(name, fn) {
-	event.off(name, eventList[fn]);
-	delete eventList[fn];
+	event.off(name, eventList[fn.guid]);
+	delete eventList[fn.guid];
 };
 
 
 var handleAlias = function(self) {
-	self.on('alias', function(namespace, id) {
+	event.on('alias', function(namespace, id) {
+		if (self.namespace !== namespace) {
+			return;
+		}
+
 		return filter(self._config['alias'], function(index, alias) {
 			return typeof alias === 'function' ? alias(id) : alias[id];
 		});
@@ -101,7 +94,11 @@ var handleAlias = function(self) {
 
 var rAbs = /(^\w*:\/\/)|(^[.\/])/;
 var handleResolve = function(self) {
-	self.on('resolve', function(namespace, id) {
+	event.on('resolve', function(namespace, id) {
+		if (self.namespace !== namespace) {
+			return;
+		}
+
 		var url = filter(self._config['resolve'], function(index, resolve) {
 			return resolve(id);
 		});
@@ -152,44 +149,7 @@ var defineSpecial = function(self) {
 //~ loader
 
 
-// handle global event
 
-event.on('define', function(module) {
-	if (module.anonymous) {
-		log.debug('require anonymous module:', module.namespace, ':', module.id);
-		require(module.namespace, module.id);
-	}
-});
-
-
-var requestList = {};
-event.on('request', function(o, callback) {
-	var url = o.url,
-		list = requestList[url] = requestList[url] || [];
-
-	list.push(callback);
-	if (list.length > 1) {
-		return true;
-	}
-
-	request(url, function() {
-		var cache = modules[o.namespace] || {};
-		// define a proxy module for just url request
-		if (!cache[o.id] && rAbs.test(o.id)) {
-			log.debug('define proxy module for:', o.id);
-			define(o.namespace, o.id);
-		}
-
-		delete requestList[url];
-
-		util.each(list, function(index, fn) {
-			fn();
-		});
-	});
-
-	return true;
-});
-//~
 
 return loader;
 

@@ -72,7 +72,8 @@ var loadDepends = function(module, callback) {
 	};
 
 	var cache = modules[module.namespace],
-		adepends = module.adepends = module.depends.slice(0);
+		// aliased depends
+		adepends = module.adepends = depends.slice(0);
 
 	var step = function(index) {
 		var id = depends[index],
@@ -134,8 +135,7 @@ var compile = function(module, callback) {
 				throw e;
 			}
 
-			e.namespace = module.namespace;
-			event.trigger('error', e);
+			event.trigger('error', module.namespace, e);
 			log.error(e);
 		}
 	}
@@ -157,9 +157,13 @@ var loadAsync = function(namespace, id, fn) {
 
 	log.debug('resolve', mid, '->', url);
 
-	var status = event.trigger('request', 
-			{ namespace: namespace, id: id, url: url }, 
-			function() {
+	var o = {
+		namespace: namespace,
+		id: id,
+		url: url
+	};
+
+	var status = event.trigger('request', namespace, o, function() {
 		var o = modules[namespace][id];
 		if (!o) {
 			log.error('can not find module:', mid);

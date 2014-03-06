@@ -26,7 +26,7 @@ it('可以使用define定义和使用模块', function() {
 });
 
 
-it('默认定义了几个全局模块', function() {
+it('默认定义了几个内部模块', function() {
 	var names = ['version', 'originbutterfly', 'origindefine', 
 			'global', 'modules', 'loaderdefine'];
 

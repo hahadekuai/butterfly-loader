@@ -1,5 +1,5 @@
 /**
- * butterfly 2.0
+ * butterfly 2.2
  * @author qijun.weiqj@alibaba-inc.com
  */
 ;(function(global) {
@@ -37,7 +37,7 @@ var define = function(id, depends, o) {
 };
 
 
-define('version', '2.0.0');
+define('version', '2.2');
 define('origindefine', function() {
 	return global.define
 });
@@ -54,12 +54,12 @@ define('loaderdefine', function() {
 });
 
 
-// for test
-define._modules = modules;
-
-
 global.butterfly = define;
 global.define = define;
+
+
+// for test
+define._modules = modules;
 
 
 })(this);

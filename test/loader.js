@@ -3,13 +3,12 @@ define('test/loader', ['loader'], function(Loader) {
 
 describe('Loader', function() {
 
-	var loader = new Loader('testloader', {
-		alias: {
-			'a': 'test/a',
-			'b': 'test/b'
-		}
+	var loader = new Loader('testloader');
+	loader.config('alias', {
+		'a': 'test/a',
+		'b': 'test/b'
 	});
-
+	
 		
 	it('定义和加载模块', function() {
 		loader.define('test/a', function() {
@@ -27,10 +26,10 @@ describe('Loader', function() {
 			flag = true;
 		});
 
-		//expect(flag).toBeTruthy();
-		//expect(loader.getModules()).toEqual(['require', 'module', 'exports', 'test/a', 'test/b']);
-		//expect(loader.hasDefine('test/a')).toBeTruthy();
-		//expect(loader.hasDefine('a')).toBeFalsy();
+		expect(flag).toBeTruthy();
+		expect(loader.getModules()).toEqual(['require', 'module', 'exports', 'test/a', 'test/b']);
+		expect(loader.hasDefine('test/a')).toBeTruthy();
+		expect(loader.hasDefine('a')).toBeFalsy();
 	});
 
 
@@ -92,14 +91,6 @@ describe('Loader', function() {
 		loader.off('define', handler);
 	});
 
-
-	it('请求url文件', function(done) {
-		var url = './fixture/loader.js';
-		loader.require(url, function() {
-			expect(window.fixtureloader).toBeTruthy();
-			done();
-		});
-	});
 
 });
 

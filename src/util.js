@@ -40,8 +40,9 @@ var util = {
 
 
 	proxy: function(o, name) {
+		var fn = o[name];
 		return function() {
-			return o[name].apply(o, arguments);
+			return fn.apply(o, arguments);
 		};
 	},
 

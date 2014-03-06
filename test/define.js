@@ -53,7 +53,7 @@ describe('define', function() {
 		expect(o.namespace).toBe('test');
 		expect(o.id).toBe('test/a');
 
-		expect(event.trigger).toHaveBeenCalledWith('define', o);
+		expect(event.trigger).toHaveBeenCalledWith('define', o.namespace, o);
 	});
 		
 });

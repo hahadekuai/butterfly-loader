@@ -20,13 +20,13 @@ var define = function(namespace, id, depends, factory) {
 
 	if (cache[id]) {
 		log.warn(mid(module), 'already defined, ignore it');
-		return;
+		return cache[id];
 	} else {
 		log.debug('define module:', mid(module));
 		cache[id] = module;
 	}
 
-	event.trigger('define', module);
+	event.trigger('define', namespace, module);
 
 	return module;
 };
@@ -70,6 +70,7 @@ var mid = function(module) {
 };
 
 
+// for test
 define._regular = regular;
 define._EMPTY = EMPTY;
 
