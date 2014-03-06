@@ -1,6 +1,6 @@
 {
   "name": "butterfly-loader",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "amdlike loader for butterfly",
   "repository": {
     "type": "git",
@@ -9,7 +9,7 @@
   "keywords": [
     "amd",
     "loader",
-	"javascript"
+    "javascript"
   ],
   "devDependencies": {
     "grunt": "~0.4.1",
