@@ -52,11 +52,9 @@ var onLoadScript = function(url, node, fn) {
 };
 
 
-//TODO 在webview中, css不能正常判断结束?
 var isOldWebKit = (global.navigator && 
 			global.navigator.userAgent.replace(/.*AppleWebKit\/(\d+)\..*/, "$1")) * 1 < 536;
 
-isOldWebKit = false;
 
 request.css = function(url, fn, options) {
 	log.debug('request css:', url);
@@ -70,37 +68,48 @@ request.css = function(url, fn, options) {
 		node.charset = options.charset;
 	}
 
-	if (isOldWebKit || !('onload' in node)) {
-		log.debug('request css use image proxy');
-		var img = doc.createElement('img');
-		img.onerror = function() {
-			img.onerror = null;
-			log.debug('request css success with image proxy:', url);
-			fn();
-		};
-		img.src = url;
-	} else {
-		log.debug('request css success:', url);
+	var callback = function() {
+		log.debug('request css success:' + url)	;
 		fn();
-		/*
+	};
+
+	if (isOldWebKit) {
+		log.debug('request css use pool');
+		setTimeout(function() {
+			poll(node, callback);
+		}, 1);
+	} else {
 		node.onload = node.onreadystatechange = function() {
 			if (rReadyStates.test(node.readyState)) {
 				node.onload = node.onreadystatechange = node.onerror = null;
-				log.debug('request css success:', url);
-				fn();
+				callback();
 			}
 		};
-
 		node.onerror = function() {
 			node.onload = node.onreadystatechange = node.onerror = null;
 			log.error('request css error: ' + url);
 		};
-		*/
 	}
 
 	append(node);	
 };
 //~ css
+
+
+var rLoadXdSheetError = /security|denied/i;
+var poll = function(node, callback) {
+	var fn = function() {
+		var isLoaded = false;	
+		try {
+			isLoaded = node.sheet && node.sheet.cssRules;
+		} catch (e) {
+			isLoaded = rLoadXdSheetError.test(e.message);
+		}
+		isLoaded ? callback() : setTimeout(fn, 20);
+	};
+
+	fn();
+};
 
 
 var append = function(node) {

@@ -46,7 +46,6 @@ grunt.initConfig({
 			  'src/butterfly.js',
 			  'src/util.js',
 			  'src/log.js',
-			  'src/log.js',
 			  'src/event.js',
 			  'src/define.js',
 			  'src/require.js',
