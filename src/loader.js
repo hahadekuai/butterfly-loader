@@ -6,7 +6,14 @@ function(util, log, event, define, require,
 		modules, request) { 
 
 
+var loaders = {};
+
 var loader = function(namespace) {
+	if (loaders[namespace]) {
+		throw 'loader already exist: ' + namespace;
+	}
+	loaders[namespace] = this;
+
 	this.namespace = namespace;	
 	this._config = {};
 
@@ -15,14 +22,30 @@ var loader = function(namespace) {
 	defineSpecial(this);
 };
 
+loader.get = function(namespace) {
+	return loaders[namespace];
+};
+
 
 var proto = loader.prototype;
 
 
+var listFields = { 'alias': 1, 'resolve': 1};
+
 proto.config = function(name, value) {
-	var cache = this._config;
-	cache[name] = cache[name] || [];
-	cache[name].push(value);
+	var cache = this._config,
+		isList = listFields[name];
+
+	if (value === undefined) {
+		return isList ? (cache[name] || []) : cache[name];
+	}
+
+	if (isList) {
+		cache[name] = cache[name] || [];
+		cache[name].push(value);
+	} else {
+		cache[name] = value;
+	}
 };
 
 
@@ -147,8 +170,6 @@ var defineSpecial = function(self) {
 	});
 };
 //~ loader
-
-
 
 
 return loader;
