@@ -1,8 +1,10 @@
 define('weave', 
-	['modules', 'util', 'event', 'define', 'require', 
-	'loader', 'request', 'global', 'origindefine', 'originbutterfly'], 
-function(modules, util, loaderevent, loaderdefine, require, 
-	Loader, request, global, origindefine, originbutterfly) {
+	['modules', 'util', 'log', 'event', 'define', 
+	'require', 'loader', 'request', 'global', 'origindefine', 
+	'originbutterfly'], 
+function(modules, util, log, loaderevent, loaderdefine, 
+	require, Loader, request, global, origindefine, 
+	originbutterfly) {
 
 
 loaderevent.on('define', function(namespace, module) {
