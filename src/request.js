@@ -79,7 +79,7 @@ request.css = function(url, options) {
 		options.error && options.error();
 	};
 
-	if (isOldWebKit) {
+	if (isOldWebKit && !('onload' in node)) {
 		log.debug('request css use pool');
 		setTimeout(function() {
 			poll(node, success, error);
