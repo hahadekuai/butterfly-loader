@@ -1,5 +1,5 @@
 /**
- * butterfly 2.0
+ * butterfly 2.2
  * @author qijun.weiqj@alibaba-inc.com
  */
 ;(function(global) {
@@ -37,7 +37,7 @@ var define = function(id, depends, o) {
 };
 
 
-define('version', '2.0.0');
+define('version', '2.2');
 define('origindefine', function() {
 	return global.define
 });
@@ -54,12 +54,12 @@ define('loaderdefine', function() {
 });
 
 
-// for test
-define._modules = modules;
-
-
 global.butterfly = define;
 global.define = define;
+
+
+// for test
+define._modules = modules;
 
 
 })(this);
@@ -106,8 +106,9 @@ var util = {
 
 
 	proxy: function(o, name) {
+		var fn = o[name];
 		return function() {
-			return o[name].apply(o, arguments);
+			return fn.apply(o, arguments);
 		};
 	},
 
@@ -260,13 +261,13 @@ var define = function(namespace, id, depends, factory) {
 
 	if (cache[id]) {
 		log.warn(mid(module), 'already defined, ignore it');
-		return;
+		return cache[id];
 	} else {
 		log.debug('define module:', mid(module));
 		cache[id] = module;
 	}
 
-	event.trigger('define', module);
+	event.trigger('define', namespace, module);
 
 	return module;
 };
@@ -310,6 +311,7 @@ var mid = function(module) {
 };
 
 
+// for test
 define._regular = regular;
 define._EMPTY = EMPTY;
 
@@ -393,7 +395,8 @@ var loadDepends = function(module, callback) {
 	};
 
 	var cache = modules[module.namespace],
-		adepends = module.adepends = module.depends.slice(0);
+		// aliased depends
+		adepends = module.adepends = depends.slice(0);
 
 	var step = function(index) {
 		var id = depends[index],
@@ -455,8 +458,7 @@ var compile = function(module, callback) {
 				throw e;
 			}
 
-			e.namespace = module.namespace;
-			event.trigger('error', e);
+			event.trigger('error', module.namespace, e);
 			log.error(e);
 		}
 	}
@@ -478,9 +480,13 @@ var loadAsync = function(namespace, id, fn) {
 
 	log.debug('resolve', mid, '->', url);
 
-	var status = event.trigger('request', 
-			{ namespace: namespace, id: id, url: url }, 
-			function() {
+	var o = {
+		namespace: namespace,
+		id: id,
+		url: url
+	};
+
+	var status = event.trigger('request', namespace, o, function() {
 		var o = modules[namespace][id];
 		if (!o) {
 			log.error('can not find module:', mid);
@@ -506,7 +512,7 @@ return require;
 
 });
 
-define('request', ['global', 'log', 'event'], function(global, log, event) {
+define('request', ['global', 'log', 'event'], function(global, log, loaderEvent) {
 
 
 var doc = document,
@@ -523,13 +529,13 @@ var request = function() {
 };
 
 
-request.script = function(url, fn, options) {
+request.script = function(url, options) {
 	log.debug('request script:', url);
 	options = options || {};
 
 	var node = doc.createElement('script');
 
-	onLoadScript(url, node, fn);
+	onLoadScript(node, url, options);
 
 	node.async = 'async';
 	node.src = url;
@@ -542,20 +548,21 @@ request.script = function(url, fn, options) {
 //~ script
 
 
-var onLoadScript = function(url, node, fn) {
+var onLoadScript = function(node, url, options) {
 	node.onload = node.onreadystatechange = function(event) {
 		event = event || global.event || {};
 		if (event.type === 'load' || rReadyStates.test('' + node.readyState)) {
 			node.onload = node.onreadystatechange = node.onerror = null;
 			log.isEnabled('debug') || head.removeChild(node);
 			log.debug('request script success:', url);
-			fn();
+			options.success && options.success();
 		}
 	};
 
 	node.onerror = function() {
 		node.onload = node.onreadystatechange = node.onerror = null;
 		log.error('request js error:', url);
+		options.error && options.error();
 	};
 };
 
@@ -564,7 +571,7 @@ var isOldWebKit = (global.navigator &&
 			global.navigator.userAgent.replace(/.*AppleWebKit\/(\d+)\..*/, "$1")) * 1 < 536;
 
 
-request.css = function(url, fn, options) {
+request.css = function(url, options) {
 	log.debug('request css:', url);
 	options = options || {};
 
@@ -576,26 +583,31 @@ request.css = function(url, fn, options) {
 		node.charset = options.charset;
 	}
 
-	var callback = function() {
+	var success = function() {
 		log.debug('request css success:' + url)	;
-		fn();
+		options.success && options.success();
+	};
+
+	var error = function() {
+		log.error('request css error:' + url);
+		options.error && options.error();
 	};
 
 	if (isOldWebKit) {
 		log.debug('request css use pool');
 		setTimeout(function() {
-			poll(node, callback);
+			poll(node, success, error);
 		}, 1);
 	} else {
 		node.onload = node.onreadystatechange = function() {
 			if (rReadyStates.test(node.readyState)) {
 				node.onload = node.onreadystatechange = node.onerror = null;
-				callback();
+				success();
 			}
 		};
 		node.onerror = function() {
 			node.onload = node.onreadystatechange = node.onerror = null;
-			log.error('request css error: ' + url);
+			error();
 		};
 	}
 
@@ -605,7 +617,16 @@ request.css = function(url, fn, options) {
 
 
 var rLoadXdSheetError = /security|denied/i;
-var poll = function(node, callback) {
+var poll = function(node, success, error) {
+	var flag = false;
+
+	setTimeout(function() {
+		if (!flag) {
+			flag = true;	
+			error();
+		}
+	}, 10000);
+
 	var fn = function() {
 		var isLoaded = false;	
 		try {
@@ -613,7 +634,15 @@ var poll = function(node, callback) {
 		} catch (e) {
 			isLoaded = rLoadXdSheetError.test(e.message);
 		}
-		isLoaded ? callback() : setTimeout(fn, 20);
+	
+		if (!flag) {
+			if (isLoaded) {
+				flag = true;
+				success();
+			} else {
+				setTimeout(fn, 20);
+			}
+		}
 	};
 
 	fn();
@@ -640,37 +669,46 @@ function(util, log, event, define, require,
 		modules, request) { 
 
 
-var loader = function(namespace, config) {
+var loaders = {};
+
+var loader = function(namespace) {
+	if (loaders[namespace]) {
+		throw 'loader already exist: ' + namespace;
+	}
+	loaders[namespace] = this;
+
 	this.namespace = namespace;	
 	this._config = {};
-	config && this.config(config);
 
 	handleAlias(this);
 	handleResolve(this);
 	defineSpecial(this);
 };
 
+loader.get = function(namespace) {
+	return loaders[namespace];
+};
+
 
 var proto = loader.prototype;
 
 
+var listFields = { 'alias': 1, 'resolve': 1};
+
 proto.config = function(name, value) {
-	var cache = this._config;
-	if (typeof name === 'string' && value === undefined) {
-		return cache[name] || [];
+	var cache = this._config,
+		isList = listFields[name];
+
+	if (value === undefined) {
+		return isList ? (cache[name] || []) : cache[name];
 	}
 
-	var config = {};
-	if (typeof name === 'string') {
-		config[name] = value;
-	} else {
-		util.extend(config, name);
-	}
-
-	util.each(config, function() {
+	if (isList) {
 		cache[name] = cache[name] || [];
 		cache[name].push(value);
-	});
+	} else {
+		cache[name] = value;
+	}
 };
 
 
@@ -704,28 +742,35 @@ proto.getModules = function() {
 };
 
 
-var eventList = {};
+var eventList = {},
+	slice = [].slice;
 proto.on = function(name, fn) {
-	var ns = this.namespace;
+	var self = this;
 
-	var handler = function(o) {
-		if (o && (typeof o === 'string' ? o === ns : o.namespace === ns)) {
-			return fn.apply(self, arguments);
+	var handler = function(namespace) {
+		if (self.namespace === namespace) {
+			return fn.apply(self, slice.call(arguments, 1));
 		}
 	};
-	eventList[fn] = handler;
+
+	fn.guid = util.guid();
+	eventList[fn.guid] = handler;
 	event.on(name, handler);
 };
 
 
 proto.off = function(name, fn) {
-	event.off(name, eventList[fn]);
-	delete eventList[fn];
+	event.off(name, eventList[fn.guid]);
+	delete eventList[fn.guid];
 };
 
 
 var handleAlias = function(self) {
-	self.on('alias', function(namespace, id) {
+	event.on('alias', function(namespace, id) {
+		if (self.namespace !== namespace) {
+			return;
+		}
+
 		return filter(self._config['alias'], function(index, alias) {
 			return typeof alias === 'function' ? alias(id) : alias[id];
 		});
@@ -735,7 +780,11 @@ var handleAlias = function(self) {
 
 var rAbs = /(^\w*:\/\/)|(^[.\/])/;
 var handleResolve = function(self) {
-	self.on('resolve', function(namespace, id) {
+	event.on('resolve', function(namespace, id) {
+		if (self.namespace !== namespace) {
+			return;
+		}
+
 		var url = filter(self._config['resolve'], function(index, resolve) {
 			return resolve(id);
 		});
@@ -786,9 +835,19 @@ var defineSpecial = function(self) {
 //~ loader
 
 
-// handle global event
+return loader;
 
-event.on('define', function(module) {
+	
+});
+
+define('weave', 
+	['modules', 'util', 'event', 'define', 'require', 
+	'loader', 'request', 'global', 'origindefine', 'originbutterfly'], 
+function(modules, util, loaderevent, loaderdefine, require, 
+	Loader, request, global, origindefine, originbutterfly) {
+
+
+loaderevent.on('define', function(namespace, module) {
 	if (module.anonymous) {
 		log.debug('require anonymous module:', module.namespace, ':', module.id);
 		require(module.namespace, module.id);
@@ -796,8 +855,10 @@ event.on('define', function(module) {
 });
 
 
-var requestList = {};
-event.on('request', function(o, callback) {
+var requestList = {},
+	rAbs = /(^\w*:\/\/)|(^[.\/])/;
+
+loaderevent.on('request', function(namespace, o, callback) {
 	var url = o.url,
 		list = requestList[url] = requestList[url] || [];
 
@@ -806,54 +867,59 @@ event.on('request', function(o, callback) {
 		return true;
 	}
 
-	request(url, function() {
-		var cache = modules[o.namespace] || {};
+	var loader = Loader.get(namespace),
+		options = loader.config('request');
+
+	options = util.extend({}, options);
+	
+	options.success = function() {
+		var cache = modules[namespace] || {};
 		// define a proxy module for just url request
 		if (!cache[o.id] && rAbs.test(o.id)) {
 			log.debug('define proxy module for:', o.id);
-			define(o.namespace, o.id);
-		}
+			loaderdefine(namespace, o.id);
+		}	
 
 		delete requestList[url];
-
 		util.each(list, function(index, fn) {
 			fn();
 		});
-	});
+	};
+
+	options.error = function() {
+		var e = new Error('request error: ' + url);
+		loaderevent.trigger('error', namespace, e);
+	};
+	
+	request(url, options);
 
 	return true;
 });
 //~
 
-return loader;
 
-	
-});
+var butterfly = new Loader('butterfly');
 
-define('weave', 
-	['util', 'loaderdefine', 'modules', 'loader', 'global', 
-	'origindefine', 'originbutterfly'], 
-function(util, loaderdefine, modules, Loader, global, 
-	origindefine, originbutterfly) {
+butterfly.loader = function(namespace) {
+	return new Loader(namespace);
+};
 
 
-var butterfly = new Loader('butterfly'),
-	define = util.proxy(butterfly, 'define');
-
-
-define('loaderdefine', function() {
+butterfly.define('loaderdefine', function() {
 	return loaderdefine;	
 });
 
 
-define('global', function() {
+butterfly.define('global', function() {
 	return global;	
 });
 
 
+// for test
 butterfly._modules = modules;
+
 global.butterfly = butterfly;
-global.define = define;
+global.define = util.proxy(butterfly, 'define');
 
 butterfly.noConflict = function(deep) {
 	global.define = origindefine;
