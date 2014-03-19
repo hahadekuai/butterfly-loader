@@ -48,7 +48,7 @@ loaderevent.on('request', function(namespace, o, callback) {
 
 	options.error = function() {
 		var e = new Error('request error: ' + url);
-		loaderevent.trigger('error', namespace, e);
+		loaderevent.trigger('requireError', namespace, o.id);
 	};
 	
 	request(url, options);
