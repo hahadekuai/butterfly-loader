@@ -5,7 +5,7 @@ var LEVEL = { none: 0, error: 1, warn: 2, info: 3, debug: 4 },
 	level = (function() {
 		var loc = global.location,
 			search = loc ? loc.search : '';
-		return (/\bdebug-log-level=(\w+)/.exec(search) || {})[1] || window.logLevel || 'error';
+		return (/\bdebug-log-level=(\w+)/.exec(search) || {})[1] || window.debugLogLevel || 'error';
 	})(),
 	join = [].join;
 
