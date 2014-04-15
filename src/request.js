@@ -102,7 +102,7 @@ request.css = function(url, options) {
 //~ css
 
 
-var rLoadXdSheetError = /security|denied/i;
+var rLoadSheetError = /security|denied/i;
 var poll = function(node, success, error) {
 	var flag = false;
 
@@ -118,7 +118,7 @@ var poll = function(node, success, error) {
 		try {
 			isLoaded = node.sheet && node.sheet.cssRules;
 		} catch (e) {
-			isLoaded = rLoadXdSheetError.test(e.message);
+			isLoaded = rLoadSheetError.test(e.message);
 		}
 	
 		if (!flag) {

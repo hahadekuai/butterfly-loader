@@ -616,7 +616,7 @@ request.css = function(url, options) {
 //~ css
 
 
-var rLoadXdSheetError = /security|denied/i;
+var rLoadSheetError = /security|denied/i;
 var poll = function(node, success, error) {
 	var flag = false;
 
@@ -632,7 +632,7 @@ var poll = function(node, success, error) {
 		try {
 			isLoaded = node.sheet && node.sheet.cssRules;
 		} catch (e) {
-			isLoaded = rLoadXdSheetError.test(e.message);
+			isLoaded = rLoadSheetError.test(e.message);
 		}
 	
 		if (!flag) {
@@ -858,7 +858,7 @@ loaderevent.on('define', function(namespace, module) {
 
 
 var requestList = {},
-	rAbs = /(^\w*:\/\/)|(^[.\/])/;
+	rFile = /\.(css|js)(\?.*)?$/;
 
 loaderevent.on('request', function(namespace, o, callback) {
 	var url = o.url,
@@ -877,7 +877,7 @@ loaderevent.on('request', function(namespace, o, callback) {
 	options.success = function() {
 		var cache = modules[namespace] || {};
 		// define a proxy module for just url request
-		if (!cache[o.id] && rAbs.test(o.id)) {
+		if (!cache[o.id] && rFile.test(o.id)) {
 			log.debug('define proxy module for:', o.id);
 			loaderdefine(namespace, o.id);
 		}	

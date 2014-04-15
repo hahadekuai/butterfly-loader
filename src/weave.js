@@ -16,7 +16,7 @@ loaderevent.on('define', function(namespace, module) {
 
 
 var requestList = {},
-	rAbs = /(^\w*:\/\/)|(^[.\/])/;
+	rFile = /\.(css|js)(\?.*)?$/;
 
 loaderevent.on('request', function(namespace, o, callback) {
 	var url = o.url,
@@ -35,7 +35,7 @@ loaderevent.on('request', function(namespace, o, callback) {
 	options.success = function() {
 		var cache = modules[namespace] || {};
 		// define a proxy module for just url request
-		if (!cache[o.id] && rAbs.test(o.id)) {
+		if (!cache[o.id] && rFile.test(o.id)) {
 			log.debug('define proxy module for:', o.id);
 			loaderdefine(namespace, o.id);
 		}	
